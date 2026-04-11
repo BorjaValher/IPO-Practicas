@@ -238,7 +238,7 @@
 
     <!-- CÓDIGO JAVASCRIPT INTEGRADO -->
     <script>
-        // 1. BASE DE DATOS SIMULADA DEL PACIENTE
+        // 1. BASE DE DATOS PROPIA (Lo que ves tú en la app)
         const patientData = {
             perfil: {
                 nombre: "Alejandro García Martínez",
@@ -278,7 +278,7 @@
 
         // 3. RENDERIZADO DE DATOS EN EL HTML
         function renderData() {
-            // INICIO: Alergias
+            // Alergias
             const alergiasHtml = patientData.alergias.map(a => `
                 <span class="bg-red-50 text-[#d32f2f] border border-red-100 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm">
                     <i data-lucide="ban" class="w-3 h-3"></i> ${a}
@@ -287,7 +287,7 @@
             document.getElementById('alergias-container').innerHTML = alergiasHtml;
             document.getElementById('sangre-text').innerText = patientData.perfil.sangre;
 
-            // INICIO: Contactos
+            // Contactos
             const contactosHtml = patientData.contactos.map(c => `
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
                     <div class="flex items-center gap-4">
@@ -306,7 +306,7 @@
             `).join('');
             document.getElementById('contactos-container').innerHTML = contactosHtml;
 
-            // INICIO: Medicación
+            // Medicación
             const medicacionHtml = patientData.medicacion.map(m => `
                 <div class="flex gap-4 p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                     <div class="bg-white p-2 rounded-lg shadow-sm h-fit">
@@ -320,12 +320,12 @@
             `).join('');
             document.getElementById('medicacion-container').innerHTML = medicacionHtml;
 
-            // INICIO: Seguro
+            // Seguro
             document.getElementById('seguro-compania').innerText = patientData.seguro.compania;
             document.getElementById('seguro-poliza').innerText = patientData.seguro.poliza;
             document.getElementById('seguro-tipo').innerText = patientData.seguro.tipo;
 
-            // HISTORIAL
+            // Historial
             const historialHtml = patientData.historial.map(h => `
                 <div class="relative pl-6">
                     <div class="absolute w-4 h-4 bg-[#00529b] rounded-full -left-[9px] top-1 border-4 border-slate-50"></div>
@@ -341,7 +341,7 @@
             `).join('');
             document.getElementById('historial-container').innerHTML = historialHtml;
 
-            // PERFIL
+            // Perfil
             document.getElementById('perfil-nombre').innerText = patientData.perfil.nombre;
             document.getElementById('perfil-id').innerText = patientData.perfil.id;
             document.getElementById('perfil-direccion').innerHTML = `
@@ -364,37 +364,31 @@
             `).join('');
         }
 
-        // 4. FUNCIONALIDAD DE PESTAÑAS (NAVEGACIÓN)
+        // 4. NAVEGACIÓN ENTRE PESTAÑAS
         function switchTab(tabId, btnElement) {
-            // Ocultar todas las pestañas
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            // Mostrar la seleccionada
             document.getElementById(tabId).classList.add('active');
 
-            // Actualizar diseño de botones
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.replace('text-[#00529b]', 'text-slate-300');
             });
             btnElement.classList.replace('text-slate-300', 'text-[#00529b]');
-            
-            // Volver a renderizar iconos en la nueva pestaña visible
             lucide.createIcons();
         }
 
-        // 5. FUNCIONALIDAD: LLAMADA SOS
+        // 5. LLAMADA SOS
         function triggerSOS() {
-            // Busca el contacto principal y lanza el intent de llamada del teléfono
             const principal = patientData.contactos.find(c => c.principal);
             if(principal) {
                 window.location.href = `tel:${principal.telefono}`;
             } else {
-                window.location.href = "tel:112"; // Fallback a emergencias
+                window.location.href = "tel:112";
             }
         }
 
-        // 6. FUNCIONALIDAD: MI UBICACIÓN
+        // 6. COMPARTIR UBICACIÓN
         function shareLocation() {
             const btnText = document.getElementById('loc-btn-text');
             const originalText = btnText.innerText;
@@ -405,8 +399,7 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        // Abre Google Maps en una nueva pestaña con las coordenadas
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`, '_blank');
+                        window.open(`http://maps.google.com/?q=${lat},${lon}`, '_blank');
                         btnText.innerText = originalText;
                     },
                     (error) => {
@@ -421,102 +414,70 @@
             }
         }
 
-    // 7. FUNCIONALIDAD: LECTURA NFC REAL
-    async function readNFC() {
-        if (!('NDEFReader' in window)) {
-            alert("NFC no soportado"); return;
+        // 7. LECTURA NFC
+        async function readNFC() {
+            console.log("Intentando leer NFC...");
+
+            if (!('NDEFReader' in window)) {
+                alert("NFC no soportado en este navegador. Usa Chrome en Android con HTTPS.");
+                return;
+            }
+
+            try {
+                const reader = new NDEFReader();
+                toggleNfcOverlay(true); 
+                
+                await reader.scan();
+                console.log("Escaneo iniciado...");
+
+                reader.onreading = ({ message }) => {
+                    const record = message.records.find(r => r.recordType === "text");
+                    if (record) {
+                        const textDecoder = new TextDecoder();
+                        const jsonString = textDecoder.decode(record.data);
+                        const scannedData = JSON.parse(jsonString);
+
+                        toggleNfcOverlay(false);
+                        showDataModal(scannedData);
+                    }
+                };
+            } catch (err) {
+                console.error("Error al leer:", err);
+                alert("Error: Asegúrate de dar permisos de NFC si el móvil los pide.");
+                toggleNfcOverlay(false);
+            }
         }
-    
-        try {
-            const reader = new NDEFReader();
-            toggleNfcOverlay(true); // Mostrar el "Buscando..."
-            await reader.scan();
-    
-            reader.onreading = ({ message }) => {
-                const record = message.records.find(r => r.recordType === "text");
-                if (record) {
-                    const textDecoder = new TextDecoder();
-                    const scannedData = JSON.parse(textDecoder.decode(record.data));
-    
-                    // AQUI ESTÁ EL TRUCO:
-                    // 1. Cerramos el overlay de "Escaneando"
-                    toggleNfcOverlay(false);
-                    
-                    // 2. Mostramos datos
-                    showDataModal(scannedData);
-    
-                    // 3. Opcional: Guardar en el historial de "Escaneos realizados"
-                    // addToHistory(scannedData);
-                }
-            };
-        } catch (err) {
-            console.error(err);
-            toggleNfcOverlay(false);
-        }
-    }
-// Función para mostrar el modal con los nuevos datos
-function showDataModal(data) {
-    // 1. Rellenar campos básicos
-    document.getElementById('modal-nombre').innerText = data.perfil.nombre;
-    document.getElementById('modal-sangre').innerText = data.perfil.sangre;
-    document.getElementById('modal-id').innerText = data.perfil.id;
 
-    // 2. Rellenar alergias (con estilo de chips rojos)
-    const container = document.getElementById('modal-alergias');
-    container.innerHTML = data.alergias.map(a => `
-        <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">
-            ${a}
-        </span>
-    `).join('');
+        // 8. MANEJO DE MODALES Y OVERLAYS (Ventana Flotante)
+        function showDataModal(data) {
+            document.getElementById('modal-nombre').innerText = data.perfil.nombre || "Desconocido";
+            document.getElementById('modal-sangre').innerText = data.perfil.sangre || "--";
+            document.getElementById('modal-id').innerText = data.perfil.id || "Sin ID";
 
-    // 3. Mostrar el modal
-    document.getElementById('data-modal').classList.remove('hidden');
-    
-    // Refrescar iconos por si acaso
-    lucide.createIcons();
-}
-
-// Función para cerrar el modal
-function closeDataModal() {
-    document.getElementById('data-modal').classList.add('hidden');
-}
-
-// Función para guardar en la nube
-async function syncWithCloud(data) {
-    console.log("Enviando datos a la nube...", data);
-    /* Aquí pondrías tu llamada real:
-    await fetch('https://tu-api.com/update', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-    */
-}
-
-
-
-
-
-        function simulateNFC() {
-            toggleNfcOverlay(true);
+            const container = document.getElementById('modal-alergias');
+            if (data.alergias) {
+                container.innerHTML = data.alergias.map(a => `
+                    <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                        ${a}
+                    </span>
+                `).join('');
+            }
             
-            // Simular un tiempo de escaneo y lectura
-            setTimeout(() => {
-                document.getElementById('nfc-title').innerText = "¡Datos Actualizados!";
-                document.getElementById('nfc-title').classList.add("text-green-400");
-                document.getElementById('nfc-desc').innerText = "La información médica ha sido sincronizada correctamente desde el dispositivo NFC.";
-                
-                // Efecto en el header
-                const headerStatus = document.getElementById('header-status');
-                headerStatus.innerText = "Sincronizado Hace 1 min";
-                headerStatus.classList.replace('text-blue-200', 'text-green-300');
-                
-                // Ocultar overlay después del mensaje
-                setTimeout(() => {
-                    toggleNfcOverlay(false);
-                    document.getElementById('nfc-title').classList.remove("text-green-400");
-                }, 1500);
+            document.getElementById('data-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
 
-            }, 2000); // Tarda 2 segundos en "escanear"
+        function closeDataModal() {
+            document.getElementById('data-modal').classList.add('hidden');
+        }
+
+        function toggleNfcOverlay(show) {
+            const overlay = document.getElementById('nfc-overlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
         }
     </script>
 </body>
