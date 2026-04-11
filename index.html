@@ -422,7 +422,7 @@
         }
 
     // 7. FUNCIONALIDAD: LECTURA NFC REAL
-    async function simulateNFC() {
+    async function readNFC() {
         if (!('NDEFReader' in window)) {
             alert("NFC no soportado"); return;
         }
