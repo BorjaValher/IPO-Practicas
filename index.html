@@ -56,7 +56,7 @@
                     <span class="text-[10px] uppercase tracking-widest opacity-80 font-bold text-blue-200" id="header-status">Digital Health ID</span>
                 </div>
             </div>
-            <button onclick="simulateNFC()" class="bg-blue-600 border border-blue-400 p-4 rounded-2xl shadow-lg transition-all active:scale-90">
+            <button onclick="readNFC()" class="bg-blue-600 border border-blue-400 p-4 rounded-2xl shadow-lg transition-all active:scale-90">
                 <i data-lucide="nfc" class="w-6 h-6 text-white"></i>
             </button>
         </div>
@@ -193,6 +193,48 @@
         <p id="nfc-desc" class="text-slate-400 max-w-xs leading-relaxed">Mantén el teléfono cerca del dispositivo o pulsera NFC para sincronizar tus datos médicos.</p>
         <button onclick="toggleNfcOverlay(false)" class="mt-16 text-slate-500 font-bold border-b border-slate-700 pb-1 uppercase text-sm tracking-widest active:text-white transition-colors">Cancelar</button>
     </div>
+
+    <div id="data-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+        
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="bg-[#00529b] p-6 text-white text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                </div>
+                <h3 class="text-xl font-black uppercase tracking-tight">Perfil Sincronizado</h3>
+            </div>
+    
+            <div class="p-6 space-y-4">
+                <div class="text-center border-b border-slate-100 pb-4">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Paciente</p>
+                    <h4 id="modal-nombre" class="text-2xl font-black text-slate-800 leading-tight">--</h4>
+                </div>
+    
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-red-50 p-3 rounded-2xl border border-red-100">
+                        <p class="text-[9px] font-bold text-red-400 uppercase">Grupo Sanguíneo</p>
+                        <p id="modal-sangre" class="text-lg font-black text-[#d32f2f]">--</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">ID Paciente</p>
+                        <p id="modal-id" class="text-xs font-mono font-bold text-slate-700 mt-1">--</p>
+                    </div>
+                </div>
+    
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Alergias Críticas</p>
+                    <div id="modal-alergias" class="flex flex-wrap gap-2">
+                        </div>
+                </div>
+    
+                <button onclick="closeDataModal()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-slate-800 active:scale-95 transition-all mt-4">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- CÓDIGO JAVASCRIPT INTEGRADO -->
     <script>
@@ -379,18 +421,80 @@
             }
         }
 
-        // 7. FUNCIONALIDAD: SIMULACIÓN NFC
-        function toggleNfcOverlay(show) {
-            const overlay = document.getElementById('nfc-overlay');
-            if (show) {
-                overlay.classList.remove('hidden');
-                document.getElementById('nfc-title').innerText = "Acerca VitalTip";
-                document.getElementById('nfc-desc').innerText = "Mantén el teléfono cerca del dispositivo o pulsera NFC para sincronizar tus datos médicos.";
-            } else {
-                overlay.classList.add('hidden');
-            }
-            lucide.createIcons();
+    // 7. FUNCIONALIDAD: LECTURA NFC REAL
+    async function simulateNFC() {
+        if (!('NDEFReader' in window)) {
+            alert("NFC no soportado"); return;
         }
+    
+        try {
+            const reader = new NDEFReader();
+            toggleNfcOverlay(true); // Mostrar el "Buscando..."
+            await reader.scan();
+    
+            reader.onreading = ({ message }) => {
+                const record = message.records.find(r => r.recordType === "text");
+                if (record) {
+                    const textDecoder = new TextDecoder();
+                    const scannedData = JSON.parse(textDecoder.decode(record.data));
+    
+                    // AQUI ESTÁ EL TRUCO:
+                    // 1. Cerramos el overlay de "Escaneando"
+                    toggleNfcOverlay(false);
+                    
+                    // 2. Mostramos datos
+                    showDataModal(scannedData);
+    
+                    // 3. Opcional: Guardar en el historial de "Escaneos realizados"
+                    // addToHistory(scannedData);
+                }
+            };
+        } catch (err) {
+            console.error(err);
+            toggleNfcOverlay(false);
+        }
+    }
+// Función para mostrar el modal con los nuevos datos
+function showDataModal(data) {
+    // 1. Rellenar campos básicos
+    document.getElementById('modal-nombre').innerText = data.perfil.nombre;
+    document.getElementById('modal-sangre').innerText = data.perfil.sangre;
+    document.getElementById('modal-id').innerText = data.perfil.id;
+
+    // 2. Rellenar alergias (con estilo de chips rojos)
+    const container = document.getElementById('modal-alergias');
+    container.innerHTML = data.alergias.map(a => `
+        <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">
+            ${a}
+        </span>
+    `).join('');
+
+    // 3. Mostrar el modal
+    document.getElementById('data-modal').classList.remove('hidden');
+    
+    // Refrescar iconos por si acaso
+    lucide.createIcons();
+}
+
+// Función para cerrar el modal
+function closeDataModal() {
+    document.getElementById('data-modal').classList.add('hidden');
+}
+
+// Función para guardar en la nube
+async function syncWithCloud(data) {
+    console.log("Enviando datos a la nube...", data);
+    /* Aquí pondrías tu llamada real:
+    await fetch('https://tu-api.com/update', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+    */
+}
+
+
+
+
 
         function simulateNFC() {
             toggleNfcOverlay(true);
