@@ -404,75 +404,95 @@
             }
         }
 
-        // 7. LECTURA NFC
-        async function readNFC() {
-            if (!('NDEFReader' in window)) {
-                alert("NFC no soportado.");
-                return;
-            }
+        Para que la lectura funcione perfectamente con el formato exacto que acabamos de guardar en la etiqueta, necesitamos actualizar dos funciones: readNFC() (para manejar posibles errores si leemos un chip vacío o de otro tipo) y showDataModal() (para que busque data.nombre en lugar de data.perfil.nombre, adaptándose al JSON plano que hemos creado).
 
-            try {
-                const reader = new NDEFReader();
-                toggleNfcOverlay(true); 
-                await reader.scan();
-
-                reader.onreading = ({ message }) => {
-                    const record = message.records.find(r => r.recordType === "text");
-                    if (record) {
-                        const data = JSON.parse(new TextDecoder().decode(record.data));
-                        toggleNfcOverlay(false);
-                        showDataModal(data);
+        Sustituye por completo tus funciones 7 y 8 por este código:
+        
+        JavaScript
+                // 7. LECTURA NFC (Actualizada)
+                async function readNFC() {
+                    if (!('NDEFReader' in window)) {
+                        alert("Tu dispositivo o navegador no soporta la lectura NFC.");
+                        return;
                     }
-                };
-            } catch (err) {
-                toggleNfcOverlay(false);
-            }
-        }
-
-        // 8. MANEJO DEL MODAL (VENTANA FLOTANTE)
-        function showDataModal(data) {
-            // Cambios aplicados: Cabecera reducida y eliminación de ID
-            const modalElement = document.getElementById('data-modal');
-            
-            // 1. Reducir padding de la parte azul (ajuste de clases Tailwind)
-            const header = modalElement.querySelector('.bg-\\[\\#00529b\\]');
-            header.className = "bg-[#00529b] p-4 text-white text-center"; // de p-6 a p-4
-            
-            const iconContainer = header.querySelector('.w-16');
-            iconContainer.className = "w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-1"; // de w-16 a w-10
-
-            // 2. Rellenar datos
-            document.getElementById('modal-nombre').innerText = data.perfil.nombre || "Desconocido";
-            document.getElementById('modal-sangre').innerText = data.perfil.sangre || "--";
-            
-            // 3. Ocultar el contenedor de ID (Eliminarlo visualmente)
-            const idContainer = document.getElementById('modal-id').parentElement;
-            idContainer.classList.add('hidden');
-
-            // 4. Añadir/Mostrar Teléfono de Emergencia (Si viene en el JSON del chip o usamos el local)
-            // Si el chip no trae teléfono, buscamos el principal de nuestra base local
-            const emergencyTel = data.telefono_emergencia || patientData.contactos.find(c => c.principal).telefono;
-            
-            // Reutilizamos el espacio de la ID para el teléfono de emergencia
-            idContainer.classList.remove('hidden'); // Lo volvemos a mostrar pero cambiado
-            idContainer.innerHTML = `
-                <p class="text-[9px] font-bold text-slate-400 uppercase">Emergencia</p>
-                <a href="tel:${emergencyTel}" class="text-xs font-bold text-blue-600 flex items-center gap-1 mt-1">
-                    <i data-lucide="phone" class="w-3 h-3"></i> ${emergencyTel}
-                </a>
-            `;
-
-            // Alergias
-            const container = document.getElementById('modal-alergias');
-            container.innerHTML = (data.alergias || []).map(a => `
-                <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">
-                    ${a}
-                </span>
-            `).join('');
-            
-            modalElement.classList.remove('hidden');
-            lucide.createIcons();
-        }
+        
+                    try {
+                        const reader = new NDEFReader();
+                        
+                        // Nos aseguramos de que el overlay muestre el mensaje de lectura
+                        document.getElementById('nfc-title').innerText = "Acerca VitalTip";
+                        document.getElementById('nfc-desc').innerText = "Mantén el teléfono cerca del dispositivo o pulsera NFC para sincronizar tus datos médicos.";
+                        
+                        toggleNfcOverlay(true); 
+                        await reader.scan();
+        
+                        reader.onreading = ({ message }) => {
+                            const record = message.records.find(r => r.recordType === "text");
+                            if (record) {
+                                try {
+                                    // Descodificamos y parseamos el JSON que escribimos previamente
+                                    const jsonString = new TextDecoder().decode(record.data);
+                                    const data = JSON.parse(jsonString);
+                                    
+                                    toggleNfcOverlay(false);
+                                    showDataModal(data);
+                                } catch (e) {
+                                    toggleNfcOverlay(false);
+                                    alert("El chip NFC no contiene datos de VitalTip válidos.");
+                                }
+                            } else {
+                                toggleNfcOverlay(false);
+                                alert("No se encontraron registros de texto en la etiqueta NFC.");
+                            }
+                        };
+                    } catch (err) {
+                        toggleNfcOverlay(false);
+                        alert("Error al activar la lectura NFC: " + err.message);
+                    }
+                }
+        
+                // 8. MANEJO DEL MODAL (Actualizado para el JSON de escritura)
+                function showDataModal(data) {
+                    const modalElement = document.getElementById('data-modal');
+                    
+                    // Ajustes de estilos de la cabecera
+                    const header = modalElement.querySelector('.bg-\\[\\#00529b\\]');
+                    if(header) header.className = "bg-[#00529b] p-4 text-white text-center"; 
+                    
+                    const iconContainer = header ? header.querySelector('.w-16, .w-10') : null;
+                    if(iconContainer) iconContainer.className = "w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-1";
+        
+                    // 1. Rellenar datos usando el nuevo formato plano
+                    document.getElementById('modal-nombre').innerText = data.nombre || "Desconocido";
+                    document.getElementById('modal-sangre').innerText = data.tipo_sangre || "--";
+                    
+                    // 2. Contenedor para el teléfono (aprovechando el hueco del ID)
+                    const idContainer = document.getElementById('modal-id').parentElement;
+                    const emergencyTel = data.telefono_emergencia || "No especificado";
+                    
+                    idContainer.classList.remove('hidden'); 
+                    idContainer.innerHTML = `
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">Emergencia</p>
+                        <a href="tel:${emergencyTel}" class="text-xs font-bold text-blue-600 flex items-center gap-1 mt-1">
+                            <i data-lucide="phone" class="w-3 h-3"></i> ${emergencyTel}
+                        </a>
+                    `;
+        
+                    // 3. Alergias
+                    const container = document.getElementById('modal-alergias');
+                    if (data.alergias && data.alergias.length > 0) {
+                        container.innerHTML = data.alergias.map(a => `
+                            <span class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-sm">
+                                ${a}
+                            </span>
+                        `).join('');
+                    } else {
+                        container.innerHTML = `<span class="text-xs text-slate-400 italic">Sin alergias registradas</span>`;
+                    }
+                    
+                    modalElement.classList.remove('hidden');
+                    lucide.createIcons();
+                }
 
         // 9. ESCRITURA NFC
         async function writeNFC() {
