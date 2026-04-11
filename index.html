@@ -166,6 +166,18 @@
                 <span>--</span>
             </p>
         </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200"></div>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Dirección habitual</p>
+            <p id="perfil-direccion" class="text-sm text-slate-700 flex items-start gap-2">
+                <i data-lucide="map-pin" class="w-4 h-4 text-[#00529b] mt-0.5 shrink-0"></i>
+                <span>--</span>
+            </p>
+        </div>
+
+        <button onclick="writeNFC()" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+            <i data-lucide="radio" class="w-5 h-5"></i>
+            Guardar en NFC
+        </button>
     </main>
 
     <!-- NAVEGACIÓN -->
@@ -461,6 +473,76 @@
             modalElement.classList.remove('hidden');
             lucide.createIcons();
         }
+
+        // 9. ESCRITURA NFC
+        async function writeNFC() {
+            // Comprobar soporte del navegador
+            if (!('NDEFReader' in window)) {
+                alert("Tu dispositivo o navegador no soporta la escritura NFC. (Usa Chrome en Android)");
+                return;
+            }
+
+            try {
+                // 1. Extraer y preparar los datos en el formato JSON solicitado
+                const telefonoPrincipal = patientData.contactos.find(c => c.principal)?.telefono || "";
+                
+                const emergencyData = {
+                    nombre: patientData.perfil.nombre,
+                    tipo_sangre: patientData.perfil.sangre,
+                    telefono_emergencia: telefonoPrincipal,
+                    alergias: patientData.alergias
+                };
+
+                const jsonData = JSON.stringify(emergencyData);
+
+                // 2. Modificar visualmente el Overlay para el modo "Escritura"
+                const titleEl = document.getElementById('nfc-title');
+                const descEl = document.getElementById('nfc-desc');
+                
+                // Guardar textos originales para restaurarlos después
+                const originalTitle = titleEl.innerText;
+                const originalDesc = descEl.innerText;
+
+                titleEl.innerText = "Grabar Etiqueta";
+                descEl.innerText = "Acerca una etiqueta NFC para guardar tus datos médicos de emergencia.";
+                
+                // Mostrar el Overlay
+                toggleNfcOverlay(true);
+
+                // 3. Iniciar la escritura
+                const ndef = new NDEFReader();
+                await ndef.write({
+                    records: [{
+                        recordType: "text",
+                        data: jsonData
+                    }]
+                });
+
+                // 4. Éxito
+                toggleNfcOverlay(false);
+                alert("¡Datos de emergencia guardados en el NFC correctamente!");
+                
+                // Restaurar los textos del overlay a su estado normal
+                setTimeout(() => {
+                    titleEl.innerText = originalTitle;
+                    descEl.innerText = originalDesc;
+                }, 500);
+
+            } catch (error) {
+                // Manejo de errores (etiqueta bloqueada, alejada muy rápido, etc.)
+                toggleNfcOverlay(false);
+                console.error("Error NFC:", error);
+                alert("Error al escribir en el NFC: " + error.message);
+                
+                // Restaurar textos por si falla
+                setTimeout(() => {
+                    document.getElementById('nfc-title').innerText = "Acerca VitalTip";
+                    document.getElementById('nfc-desc').innerText = "Mantén el teléfono cerca del dispositivo o pulsera NFC para sincronizar tus datos médicos.";
+                }, 500);
+            }
+        }
+
+
 
         function closeDataModal() {
             document.getElementById('data-modal').classList.add('hidden');
