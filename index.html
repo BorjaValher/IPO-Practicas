@@ -408,23 +408,24 @@
                 return;
             }
         
-            // 1. LIMPIEZA INICIAL: Si ya había algo corriendo, lo matamos de raíz
+            // 1. LIMPIEZA TOTAL: Matamos cualquier señal previa
             if (nfcAbortController) {
                 nfcAbortController.abort();
-                nfcAbortController = null;
             }
             
+            // Creamos un controlador nuevo para esta pulsación
             nfcAbortController = new AbortController();
         
             try {
+                // 2. RE-INSTANCIAR: Creamos un lector nuevo desde cero
                 nfcReader = new NDEFReader();
                 
-                // Iniciamos el escaneo con la señal de aborto
+                // 3. INICIAR ESCANEO
                 await nfcReader.scan({ signal: nfcAbortController.signal });
         
+                toggleNfcOverlay(true);
                 const titleEl = document.getElementById('nfc-title');
                 if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
-                toggleNfcOverlay(true);
         
                 nfcReader.onreading = ({ message }) => {
                     try {
@@ -446,36 +447,42 @@
                                     alergias: rawData.alergias || []
                                 };
         
-                                // --- CIERRE Y RESET TOTAL ---
-                                // Detenemos el hardware inmediatamente
+                                // 4. CIERRE DE HARDWARE (Fundamental para la 2ª lectura)
                                 nfcAbortController.abort(); 
                                 
-                                // Ponemos las variables a null para que la siguiente vez sea de cero
+                                // IMPORTANTE: Limpiamos las referencias para que el GC de JS las borre
+                                nfcReader = null;
                                 nfcAbortController = null;
-                                nfcReader = null; 
                                 
                                 toggleNfcOverlay(false);
                                 showDataModal(formattedData);
                             }
                         }
                     } catch (err) {
-                        console.error("Error al procesar JSON:", err);
-                        alert("La etiqueta no tiene el formato correcto.");
-                        
-                        // Limpieza en caso de error
+                        console.error("Error al procesar:", err);
+                        // Si falla, también limpiamos para permitir reintento
                         if (nfcAbortController) nfcAbortController.abort();
-                        nfcAbortController = null;
                         nfcReader = null;
-                        
+                        nfcAbortController = null;
                         toggleNfcOverlay(false);
                     }
                 };
         
+                // Si el usuario cierra el overlay manualmente (botón cancelar), matamos la antena
+                // Asumiendo que tienes un botón de cancelar, añade esto:
+                /*
+                document.getElementById('btn-cancelar-nfc').onclick = () => {
+                    if (nfcAbortController) nfcAbortController.abort();
+                    nfcReader = null;
+                    nfcAbortController = null;
+                    toggleNfcOverlay(false);
+                };
+                */
+        
             } catch (err) {
-                // Si el error no es simplemente que nosotros cancelamos la lectura...
                 if (err.name !== 'AbortError') {
-                    console.error("Error al iniciar NFC:", err);
-                    alert("No se pudo activar el lector.");
+                    console.error("Error NFC:", err);
+                    alert("Error al activar NFC. Si persiste, reinicia Chrome.");
                     nfcReader = null;
                     nfcAbortController = null;
                     toggleNfcOverlay(false);
@@ -572,14 +579,29 @@
             }
         }
 
+        function stopNFC() {
+            if (nfcAbortController) {
+                nfcAbortController.abort();
+                nfcAbortController = null;
+            }
+            nfcReader = null;
+            console.log("NFC Detenido y limpiado.");
+        }
 
         function closeDataModal() {
             document.getElementById('data-modal').classList.add('hidden');
+            stopNFC();
         }
 
         function toggleNfcOverlay(show) {
             const overlay = document.getElementById('nfc-overlay');
-            show ? overlay.classList.remove('hidden') : overlay.classList.add('hidden');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+                // Si cerramos el overlay manualmente, detenemos la lectura
+                if (nfcAbortController) stopNFC(); 
+            }
         }
     </script>
 </body>
