@@ -408,43 +408,57 @@
                 return;
             }
         
-            // 1. Limpieza absoluta antes de empezar
-            if (nfcAbortController) nfcAbortController.abort();
+            // 1. Reset preventivo de controladores
+            if (nfcAbortController) {
+                nfcAbortController.abort();
+            }
             nfcAbortController = new AbortController();
-            nfcReader = new NDEFReader();
-        
+            
             try {
+                nfcReader = new NDEFReader();
                 await nfcReader.scan({ signal: nfcAbortController.signal });
-                
-                // Feedback visual
+        
                 document.getElementById('nfc-title').innerText = "Esperando Etiqueta...";
                 document.getElementById('nfc-overlay').classList.remove('hidden');
         
                 nfcReader.onreading = ({ message }) => {
                     try {
                         const record = message.records.find(r => r.recordType === "text");
-                        if (record) {
-                            const decoder = new TextDecoder();
-                            const fullText = decoder.decode(record.data);
-                            const jsonStartIndex = fullText.indexOf('{');
-                            
-                            if (jsonStartIndex !== -1) {
-                                const rawData = JSON.parse(fullText.substring(jsonStartIndex));
-                                const formattedData = {
-                                    perfil: { nombre: rawData.nombre, sangre: rawData.tipo_sangre },
-                                    telefono_emergencia: rawData.telefono_emergencia,
-                                    alergias: rawData.alergias || []
-                                };
-        
-                                // Cierre limpio: Primero cerramos overlay, luego matamos hardware
-                                document.getElementById('nfc-overlay').classList.add('hidden');
-                                stopNFC(); 
-                                showDataModal(formattedData);
-                            }
+                        if (!record) {
+                            throw new Error("No se encontró registro de texto");
                         }
+        
+                        const decoder = new TextDecoder();
+                        const fullText = decoder.decode(record.data);
+                        
+                        // Buscamos el inicio del JSON para evitar caracteres de control extraños
+                        const jsonStartIndex = fullText.indexOf('{');
+                        const jsonEndIndex = fullText.lastIndexOf('}') + 1;
+                        
+                        if (jsonStartIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+                            const cleanJson = fullText.substring(jsonStartIndex, jsonEndIndex);
+                            const rawData = JSON.parse(cleanJson);
+                            
+                            const formattedData = {
+                                perfil: { 
+                                    nombre: rawData.nombre || "Sin nombre", 
+                                    sangre: rawData.tipo_sangre || "--" 
+                                },
+                                telefono_emergencia: rawData.telefono_emergencia || "",
+                                alergias: rawData.alergias || []
+                            };
+        
+                            // DETENCIÓN INMEDIATA antes de mostrar nada
+                            stopNFC(); 
+                            document.getElementById('nfc-overlay').classList.add('hidden');
+                            showDataModal(formattedData);
+                        } else {
+                            throw new Error("JSON no válido en la etiqueta");
+                        }
+        
                     } catch (err) {
-                        console.error("Error al procesar:", err);
-                        alert("Formato de etiqueta incorrecto.");
+                        console.error("Error en lectura:", err);
+                        alert("Error: La etiqueta no tiene datos válidos o está corrupta.");
                         stopNFC();
                         document.getElementById('nfc-overlay').classList.add('hidden');
                     }
@@ -452,8 +466,8 @@
         
             } catch (err) {
                 if (err.name !== 'AbortError') {
-                    console.error("Error NFC:", err);
-                    alert("Error al activar el lector.");
+                    console.error("Error al iniciar escaneo:", err);
+                    alert("No se pudo iniciar el lector NFC.");
                     stopNFC();
                     document.getElementById('nfc-overlay').classList.add('hidden');
                 }
