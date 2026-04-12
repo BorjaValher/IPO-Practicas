@@ -245,6 +245,7 @@
     <!-- CÓDIGO JAVASCRIPT INTEGRADO -->
     <script>
         let nfcReader = null; // Variable global para controlar la sesión
+        let nfcAbortController = null;
         // 1. BASE DE DATOS PROPIA
         const patientData = {
             perfil: {
@@ -407,19 +408,22 @@
                 return;
             }
         
-            try {
-                // 1. Iniciamos/Recuperamos el escaneo
-                if (!nfcReader) {
-                    nfcReader = new NDEFReader();
-                    await nfcReader.scan();
-                }
+            // Si ya hay una lectura activa, la cancelamos antes de empezar otra
+            if (nfcAbortController) {
+                nfcAbortController.abort();
+            }
+            
+            nfcAbortController = new AbortController();
         
-                // 2. UI y Feedback
+            try {
+                nfcReader = new NDEFReader();
+                // Pasamos la señal de aborto al escaneo
+                await nfcReader.scan({ signal: nfcAbortController.signal });
+        
                 const titleEl = document.getElementById('nfc-title');
                 if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
                 toggleNfcOverlay(true);
         
-                // 3. Configuramos la lectura
                 nfcReader.onreading = ({ message }) => {
                     try {
                         const record = message.records.find(r => r.recordType === "text");
@@ -440,9 +444,10 @@
                                     alergias: rawData.alergias || []
                                 };
         
-                                // --- LA LIMPIEZA CLAVE ---
-                                // Al recibir los datos, matamos el evento para que no se duplique
-                                nfcReader.onreading = null; 
+                                // --- CIERRE TOTAL ---
+                                // Matamos la señal: esto detiene el hardware y limpia todo
+                                nfcAbortController.abort(); 
+                                nfcAbortController = null;
                                 
                                 toggleNfcOverlay(false);
                                 showDataModal(formattedData);
@@ -450,24 +455,17 @@
                         }
                     } catch (err) {
                         console.error("Error al procesar JSON:", err);
-                        alert("Error en el formato de la etiqueta.");
-                        nfcReader.onreading = null; // Limpiar también en caso de error
+                        alert("La etiqueta no tiene el formato correcto.");
+                        if (nfcAbortController) nfcAbortController.abort();
                         toggleNfcOverlay(false);
                     }
                 };
         
-                nfcReader.onreadingerror = () => {
-                    alert("Error de lectura. Intenta de nuevo.");
-                    nfcReader.onreading = null; // Limpiar si falla el hardware
-                    toggleNfcOverlay(false);
-                };
-        
             } catch (err) {
-                console.error("Error al iniciar NFC:", err);
-                if (err.name === "InvalidStateError") {
-                    toggleNfcOverlay(true);
-                } else {
-                    alert("No se pudo activar el lector: " + err.message);
+                if (err.name !== 'AbortError') {
+                    console.error("Error al iniciar NFC:", err);
+                    alert("No se pudo activar el lector.");
+                    toggleNfcOverlay(false);
                 }
             }
         }
