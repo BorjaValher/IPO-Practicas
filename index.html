@@ -244,6 +244,7 @@
 
     <!-- CÓDIGO JAVASCRIPT INTEGRADO -->
     <script>
+        let nfcReader = null; // Variable global para controlar la sesión
         // 1. BASE DE DATOS PROPIA
         const patientData = {
             perfil: {
@@ -407,55 +408,61 @@
             }
         
             try {
-                const reader = new NDEFReader();
-                await reader.scan();
-                toggleNfcOverlay(true);
+                // Si no existe el lector, lo creamos e iniciamos el escaneo
+                if (!nfcReader) {
+                    nfcReader = new NDEFReader();
+                    await nfcReader.scan();
+                }
         
-                reader.onreading = ({ message }) => {
+                toggleNfcOverlay(true);
+                const titleEl = document.getElementById('nfc-title');
+                if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
+        
+                // Configuramos (o reconfiguramos) el evento de lectura
+                nfcReader.onreading = ({ message }) => {
                     try {
-                        // 1. Buscamos el registro de texto que creó writeNFC
                         const record = message.records.find(r => r.recordType === "text");
-                        
                         if (record) {
                             const decoder = new TextDecoder();
                             const fullText = decoder.decode(record.data);
-        
-                            // 2. Limpiamos el prefijo de idioma (ej: "en") para obtener el JSON puro
                             const jsonStartIndex = fullText.indexOf('{');
-                            if (jsonStartIndex === -1) throw new Error("No es un JSON válido");
                             
-                            // Estos son los datos tal cual se escribieron en el chip
-                            const dataFromChip = JSON.parse(fullText.substring(jsonStartIndex));
+                            if (jsonStartIndex !== -1) {
+                                const rawData = JSON.parse(fullText.substring(jsonStartIndex));
+                                
+                                // Formateamos para el modal
+                                const formattedData = {
+                                    perfil: {
+                                        nombre: rawData.nombre,
+                                        sangre: rawData.tipo_sangre
+                                    },
+                                    telefono_emergencia: rawData.telefono_emergencia,
+                                    alergias: rawData.alergias || []
+                                };
         
-                            // 3. TRANSFORMACIÓN: Aquí es donde hacemos que coincida con showDataModal
-                            // Convertimos el formato "plano" del chip al formato "anidado" del modal
-                            const formattedData = {
-                                perfil: {
-                                    nombre: dataFromChip.nombre,       // De 'nombre' a 'perfil.nombre'
-                                    sangre: dataFromChip.tipo_sangre  // De 'tipo_sangre' a 'perfil.sangre'
-                                },
-                                telefono_emergencia: dataFromChip.telefono_emergencia,
-                                alergias: dataFromChip.alergias || []
-                            };
-        
-                            // 4. Cerramos overlay y enviamos al modal ya formateado
-                            toggleNfcOverlay(false);
-                            showDataModal(formattedData);
-        
-                        } else {
-                            alert("La etiqueta no contiene datos de texto.");
-                            toggleNfcOverlay(false);
+                                toggleNfcOverlay(false);
+                                showDataModal(formattedData);
+                            }
                         }
                     } catch (err) {
-                        console.error("Error al procesar:", err);
-                        alert("Error: El formato de la pulsera no es compatible.");
+                        console.error("Error al procesar JSON:", err);
+                        alert("La etiqueta no tiene el formato correcto.");
                         toggleNfcOverlay(false);
                     }
                 };
         
+                nfcReader.onreadingerror = () => {
+                    alert("Error de lectura. Acerca la etiqueta de nuevo.");
+                };
+        
             } catch (err) {
-                console.error("Error de escaneo:", err);
-                toggleNfcOverlay(false);
+                console.error("Error al iniciar NFC:", err);
+                // Si sale error porque ya está activo, no pasa nada, solo mostramos el overlay
+                if (err.name === "InvalidStateError") {
+                    toggleNfcOverlay(true);
+                } else {
+                    alert("Error: " + err.message);
+                }
             }
         }
 
@@ -506,69 +513,46 @@
 
         // 9. ESCRITURA NFC
         async function writeNFC() {
-            // Comprobar soporte del navegador
             if (!('NDEFReader' in window)) {
-                alert("Tu dispositivo o navegador no soporta la escritura NFC. (Usa Chrome en Android)");
+                alert("NFC no soportado.");
                 return;
             }
-
+        
             try {
-                // 1. Extraer y preparar los datos en el formato JSON solicitado
+                // 1. Preparar datos
                 const telefonoPrincipal = patientData.contactos.find(c => c.principal)?.telefono || "";
-                
-                const emergencyData = {
+                const jsonData = JSON.stringify({
                     nombre: patientData.perfil.nombre,
                     tipo_sangre: patientData.perfil.sangre,
                     telefono_emergencia: telefonoPrincipal,
                     alergias: patientData.alergias
-                };
-
-                const jsonData = JSON.stringify(emergencyData);
-
-                // 2. Modificar visualmente el Overlay para el modo "Escritura"
-                const titleEl = document.getElementById('nfc-title');
-                const descEl = document.getElementById('nfc-desc');
-                
-                // Guardar textos originales para restaurarlos después
-                const originalTitle = titleEl.innerText;
-                const originalDesc = descEl.innerText;
-
-                titleEl.innerText = "Grabar Etiqueta";
-                descEl.innerText = "Acerca una etiqueta NFC para guardar tus datos médicos de emergencia.";
-                
-                // Mostrar el Overlay
-                toggleNfcOverlay(true);
-
-                // 3. Iniciar la escritura
-                const ndef = new NDEFReader();
-                await ndef.write({
-                    records: [{
-                        recordType: "text",
-                        data: jsonData
-                    }]
                 });
-
-                // 4. Éxito
+        
+                // 2. Feedback visual
+                const titleEl = document.getElementById('nfc-title');
+                if (titleEl) titleEl.innerText = "Escribiendo...";
+                toggleNfcOverlay(true);
+        
+                // 3. Escribir (Usamos una instancia nueva para escribir, es más seguro)
+                const writer = new NDEFReader();
+                await writer.write({
+                    records: [{ recordType: "text", data: jsonData }]
+                });
+        
                 toggleNfcOverlay(false);
-                alert("¡Datos de emergencia guardados en el NFC correctamente!");
-                
-                // Restaurar los textos del overlay a su estado normal
-                setTimeout(() => {
-                    titleEl.innerText = originalTitle;
-                    descEl.innerText = originalDesc;
-                }, 500);
-
+                alert("¡Datos guardados correctamente!");
+        
             } catch (error) {
-                // Manejo de errores (etiqueta bloqueada, alejada muy rápido, etc.)
+                console.error("Error al escribir:", error);
                 toggleNfcOverlay(false);
-                console.error("Error NFC:", error);
-                alert("Error al escribir en el NFC: " + error.message);
                 
-                // Restaurar textos por si falla
-                setTimeout(() => {
-                    document.getElementById('nfc-title').innerText = "Acerca VitalTip";
-                    document.getElementById('nfc-desc').innerText = "Mantén el teléfono cerca del dispositivo o pulsera NFC para sincronizar tus datos médicos.";
-                }, 500);
+                if (error.name === "NotAllowedError") {
+                    alert("Permiso denegado para usar NFC.");
+                } else if (error.name === "AbortError") {
+                    alert("Escritura cancelada o interrumpida.");
+                } else {
+                    alert("Error al grabar: " + error.message);
+                }
             }
         }
 
