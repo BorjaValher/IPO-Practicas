@@ -408,18 +408,18 @@
             }
         
             try {
-                // Solo iniciamos el escaneo si no existe uno activo
+                // 1. Iniciamos/Recuperamos el escaneo
                 if (!nfcReader) {
                     nfcReader = new NDEFReader();
                     await nfcReader.scan();
-                    
-                    // Solo configuramos los eventos la primera vez
-                    nfcReader.onreadingerror = () => {
-                        alert("Error de lectura. Intenta acercar la etiqueta de nuevo.");
-                    };
                 }
         
-                // Siempre actualizamos el onreading para asegurar que apunte a la lógica correcta
+                // 2. UI y Feedback
+                const titleEl = document.getElementById('nfc-title');
+                if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
+                toggleNfcOverlay(true);
+        
+                // 3. Configuramos la lectura
                 nfcReader.onreading = ({ message }) => {
                     try {
                         const record = message.records.find(r => r.recordType === "text");
@@ -431,7 +431,6 @@
                             if (jsonStartIndex !== -1) {
                                 const rawData = JSON.parse(fullText.substring(jsonStartIndex));
                                 
-                                // Adaptamos el JSON plano del chip al formato anidado del modal
                                 const formattedData = {
                                     perfil: {
                                         nombre: rawData.nombre,
@@ -441,25 +440,30 @@
                                     alergias: rawData.alergias || []
                                 };
         
-                                toggleNfcOverlay(false); // Cerramos el aviso de "acerque el movil"
+                                // --- LA LIMPIEZA CLAVE ---
+                                // Al recibir los datos, matamos el evento para que no se duplique
+                                nfcReader.onreading = null; 
+                                
+                                toggleNfcOverlay(false);
                                 showDataModal(formattedData);
                             }
                         }
                     } catch (err) {
                         console.error("Error al procesar JSON:", err);
-                        alert("La etiqueta no contiene datos médicos válidos.");
+                        alert("Error en el formato de la etiqueta.");
+                        nfcReader.onreading = null; // Limpiar también en caso de error
                         toggleNfcOverlay(false);
                     }
                 };
         
-                // Mostrar UI de espera
-                const titleEl = document.getElementById('nfc-title');
-                if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
-                toggleNfcOverlay(true);
+                nfcReader.onreadingerror = () => {
+                    alert("Error de lectura. Intenta de nuevo.");
+                    nfcReader.onreading = null; // Limpiar si falla el hardware
+                    toggleNfcOverlay(false);
+                };
         
             } catch (err) {
                 console.error("Error al iniciar NFC:", err);
-                // Si ya está escaneando (InvalidState), solo mostramos el overlay
                 if (err.name === "InvalidStateError") {
                     toggleNfcOverlay(true);
                 } else {
