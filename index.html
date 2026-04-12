@@ -588,6 +588,7 @@
         function closeDataModal() {
             document.getElementById('data-modal').classList.add('hidden');
             stopNFC();
+            document.getElementById('nfc-title').innerText = "Acerca VitalTip";
         }
 
         function toggleNfcOverlay(show) {
