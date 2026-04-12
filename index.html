@@ -413,43 +413,42 @@
         
                 reader.onreading = ({ message }) => {
                     try {
+                        // 1. Buscamos el registro de texto que creó writeNFC
                         const record = message.records.find(r => r.recordType === "text");
                         
                         if (record) {
                             const decoder = new TextDecoder();
                             const fullText = decoder.decode(record.data);
         
-                            // 1. Buscamos el inicio del JSON
+                            // 2. Limpiamos el prefijo de idioma (ej: "en") para obtener el JSON puro
                             const jsonStartIndex = fullText.indexOf('{');
-                            if (jsonStartIndex === -1) throw new Error("No se encontró JSON");
+                            if (jsonStartIndex === -1) throw new Error("No es un JSON válido");
                             
-                            const cleanJson = fullText.substring(jsonStartIndex);
-                            
-                            // 2. Parseamos y guardamos en una constante
-                            const emergencyData = JSON.parse(cleanJson);
+                            // Estos son los datos tal cual se escribieron en el chip
+                            const dataFromChip = JSON.parse(fullText.substring(jsonStartIndex));
         
-                            // --- DEPURACIÓN: Mira la consola de Chrome en Android ---
-                            console.log("Datos recuperados del NFC:", emergencyData);
+                            // 3. TRANSFORMACIÓN: Aquí es donde hacemos que coincida con showDataModal
+                            // Convertimos el formato "plano" del chip al formato "anidado" del modal
+                            const formattedData = {
+                                perfil: {
+                                    nombre: dataFromChip.nombre,       // De 'nombre' a 'perfil.nombre'
+                                    sangre: dataFromChip.tipo_sangre  // De 'tipo_sangre' a 'perfil.sangre'
+                                },
+                                telefono_emergencia: dataFromChip.telefono_emergencia,
+                                alergias: dataFromChip.alergias || []
+                            };
         
-                            // 3. VALIDACIÓN CRÍTICA: 
-                            // Si el objeto existe y tiene contenido, cerramos overlay y mostramos modal
-                            if (emergencyData && typeof emergencyData === 'object') {
-                                toggleNfcOverlay(false);
-                                
-                                // IMPORTANTE: Asegúrate de que showDataModal acepte 
-                                // el objeto tal cual lo escribiste en writeNFC
-                                showDataModal(emergencyData); 
-                            } else {
-                                throw new Error("El contenido del NFC está vacío");
-                            }
+                            // 4. Cerramos overlay y enviamos al modal ya formateado
+                            toggleNfcOverlay(false);
+                            showDataModal(formattedData);
         
                         } else {
-                            alert("Etiqueta sin datos de texto.");
+                            alert("La etiqueta no contiene datos de texto.");
                             toggleNfcOverlay(false);
                         }
                     } catch (err) {
                         console.error("Error al procesar:", err);
-                        alert("Error: No se pudo leer la información médica.");
+                        alert("Error: El formato de la pulsera no es compatible.");
                         toggleNfcOverlay(false);
                     }
                 };
