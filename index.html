@@ -403,22 +403,23 @@
         // 7. LECTURA NFC
         async function readNFC() {
             if (!('NDEFReader' in window)) {
-                alert("NFC no soportado.");
+                alert("Tu dispositivo no soporta NFC.");
                 return;
             }
         
             try {
-                // Si no existe el lector, lo creamos e iniciamos el escaneo
+                // Solo iniciamos el escaneo si no existe uno activo
                 if (!nfcReader) {
                     nfcReader = new NDEFReader();
                     await nfcReader.scan();
+                    
+                    // Solo configuramos los eventos la primera vez
+                    nfcReader.onreadingerror = () => {
+                        alert("Error de lectura. Intenta acercar la etiqueta de nuevo.");
+                    };
                 }
         
-                toggleNfcOverlay(true);
-                const titleEl = document.getElementById('nfc-title');
-                if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
-        
-                // Configuramos (o reconfiguramos) el evento de lectura
+                // Siempre actualizamos el onreading para asegurar que apunte a la lógica correcta
                 nfcReader.onreading = ({ message }) => {
                     try {
                         const record = message.records.find(r => r.recordType === "text");
@@ -430,7 +431,7 @@
                             if (jsonStartIndex !== -1) {
                                 const rawData = JSON.parse(fullText.substring(jsonStartIndex));
                                 
-                                // Formateamos para el modal
+                                // Adaptamos el JSON plano del chip al formato anidado del modal
                                 const formattedData = {
                                     perfil: {
                                         nombre: rawData.nombre,
@@ -440,28 +441,29 @@
                                     alergias: rawData.alergias || []
                                 };
         
-                                toggleNfcOverlay(false);
+                                toggleNfcOverlay(false); // Cerramos el aviso de "acerque el movil"
                                 showDataModal(formattedData);
                             }
                         }
                     } catch (err) {
                         console.error("Error al procesar JSON:", err);
-                        alert("La etiqueta no tiene el formato correcto.");
+                        alert("La etiqueta no contiene datos médicos válidos.");
                         toggleNfcOverlay(false);
                     }
                 };
         
-                nfcReader.onreadingerror = () => {
-                    alert("Error de lectura. Acerca la etiqueta de nuevo.");
-                };
+                // Mostrar UI de espera
+                const titleEl = document.getElementById('nfc-title');
+                if (titleEl) titleEl.innerText = "Esperando Etiqueta...";
+                toggleNfcOverlay(true);
         
             } catch (err) {
                 console.error("Error al iniciar NFC:", err);
-                // Si sale error porque ya está activo, no pasa nada, solo mostramos el overlay
+                // Si ya está escaneando (InvalidState), solo mostramos el overlay
                 if (err.name === "InvalidStateError") {
                     toggleNfcOverlay(true);
                 } else {
-                    alert("Error: " + err.message);
+                    alert("No se pudo activar el lector: " + err.message);
                 }
             }
         }
@@ -530,32 +532,30 @@
         
                 // 2. Feedback visual
                 const titleEl = document.getElementById('nfc-title');
-                if (titleEl) titleEl.innerText = "Escribiendo...";
+                if (titleEl) titleEl.innerText = "Escribiendo en Etiqueta...";
                 toggleNfcOverlay(true);
         
-                // 3. Escribir (Usamos una instancia nueva para escribir, es más seguro)
+                // 3. Escribir
+                // Creamos un escritor temporal. Esto es más estable en Android.
                 const writer = new NDEFReader();
                 await writer.write({
                     records: [{ recordType: "text", data: jsonData }]
                 });
         
                 toggleNfcOverlay(false);
-                alert("¡Datos guardados correctamente!");
+                alert("¡Datos guardados correctamente en el NFC!");
         
             } catch (error) {
                 console.error("Error al escribir:", error);
                 toggleNfcOverlay(false);
                 
                 if (error.name === "NotAllowedError") {
-                    alert("Permiso denegado para usar NFC.");
-                } else if (error.name === "AbortError") {
-                    alert("Escritura cancelada o interrumpida.");
+                    alert("Permiso NFC denegado.");
                 } else {
-                    alert("Error al grabar: " + error.message);
+                    alert("Error al grabar: Asegúrate de mantener la etiqueta pegada al móvil.");
                 }
             }
         }
-
 
 
         function closeDataModal() {
