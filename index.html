@@ -416,26 +416,29 @@
                         const record = message.records.find(r => r.recordType === "text");
                         
                         if (record) {
-                            const decoder = new TextDecoder(record.encoding);
-                            let rawData = decoder.decode(record.data);
+                            const decoder = new TextDecoder();
+                            const fullText = decoder.decode(record.data);
         
-                            // --- SOLUCIÓN AL ERROR DE FORMATO ---
-                            // Los registros de texto NDEF tienen un prefijo de idioma (ej: "en") 
-                            // que rompe el JSON.parse. Tenemos que quitarlo:
-                            const langCodeLength = record.data ? new DataView(record.data).getUint8(0) & 0x3F : 0;
-                            const cleanJson = rawData.substring(langCodeLength + 1);
+                            // --- LIMPIEZA EFECTIVA ---
+                            // Buscamos donde empieza el JSON '{' 
+                            // Esto ignora automáticamente el prefijo de idioma (en, es, etc.)
+                            const jsonStartIndex = fullText.indexOf('{');
+                            if (jsonStartIndex === -1) {
+                                throw new Error("No se encontró un formato JSON válido.");
+                            }
                             
-                            // Ahora sí, parseamos el JSON limpio
+                            const cleanJson = fullText.substring(jsonStartIndex);
                             const data = JSON.parse(cleanJson);
         
+                            // Éxito
                             toggleNfcOverlay(false);
                             showDataModal(data);
                         } else {
-                            alert("No se encontró el registro de texto.");
+                            alert("No hay datos de texto en esta etiqueta.");
                             toggleNfcOverlay(false);
                         }
                     } catch (err) {
-                        console.error("Error detallado:", err);
+                        console.error("Error al parsear:", err);
                         alert("Error al procesar los datos: " + err.message);
                         toggleNfcOverlay(false);
                     }
