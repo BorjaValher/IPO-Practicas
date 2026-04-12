@@ -419,27 +419,37 @@
                             const decoder = new TextDecoder();
                             const fullText = decoder.decode(record.data);
         
-                            // --- LIMPIEZA EFECTIVA ---
-                            // Buscamos donde empieza el JSON '{' 
-                            // Esto ignora automáticamente el prefijo de idioma (en, es, etc.)
+                            // 1. Buscamos el inicio del JSON
                             const jsonStartIndex = fullText.indexOf('{');
-                            if (jsonStartIndex === -1) {
-                                throw new Error("No se encontró un formato JSON válido.");
-                            }
+                            if (jsonStartIndex === -1) throw new Error("No se encontró JSON");
                             
                             const cleanJson = fullText.substring(jsonStartIndex);
-                            const data = JSON.parse(cleanJson);
+                            
+                            // 2. Parseamos y guardamos en una constante
+                            const emergencyData = JSON.parse(cleanJson);
         
-                            // Éxito
-                            toggleNfcOverlay(false);
-                            showDataModal(data);
+                            // --- DEPURACIÓN: Mira la consola de Chrome en Android ---
+                            console.log("Datos recuperados del NFC:", emergencyData);
+        
+                            // 3. VALIDACIÓN CRÍTICA: 
+                            // Si el objeto existe y tiene contenido, cerramos overlay y mostramos modal
+                            if (emergencyData && typeof emergencyData === 'object') {
+                                toggleNfcOverlay(false);
+                                
+                                // IMPORTANTE: Asegúrate de que showDataModal acepte 
+                                // el objeto tal cual lo escribiste en writeNFC
+                                showDataModal(emergencyData); 
+                            } else {
+                                throw new Error("El contenido del NFC está vacío");
+                            }
+        
                         } else {
-                            alert("No hay datos de texto en esta etiqueta.");
+                            alert("Etiqueta sin datos de texto.");
                             toggleNfcOverlay(false);
                         }
                     } catch (err) {
-                        console.error("Error al parsear:", err);
-                        alert("Error al procesar los datos: " + err.message);
+                        console.error("Error al procesar:", err);
+                        alert("Error: No se pudo leer la información médica.");
                         toggleNfcOverlay(false);
                     }
                 };
