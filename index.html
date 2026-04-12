@@ -408,16 +408,18 @@
                 return;
             }
         
-            // Si ya hay una lectura activa, la cancelamos antes de empezar otra
+            // 1. LIMPIEZA INICIAL: Si ya había algo corriendo, lo matamos de raíz
             if (nfcAbortController) {
                 nfcAbortController.abort();
+                nfcAbortController = null;
             }
             
             nfcAbortController = new AbortController();
         
             try {
                 nfcReader = new NDEFReader();
-                // Pasamos la señal de aborto al escaneo
+                
+                // Iniciamos el escaneo con la señal de aborto
                 await nfcReader.scan({ signal: nfcAbortController.signal });
         
                 const titleEl = document.getElementById('nfc-title');
@@ -444,10 +446,13 @@
                                     alergias: rawData.alergias || []
                                 };
         
-                                // --- CIERRE TOTAL ---
-                                // Matamos la señal: esto detiene el hardware y limpia todo
+                                // --- CIERRE Y RESET TOTAL ---
+                                // Detenemos el hardware inmediatamente
                                 nfcAbortController.abort(); 
+                                
+                                // Ponemos las variables a null para que la siguiente vez sea de cero
                                 nfcAbortController = null;
+                                nfcReader = null; 
                                 
                                 toggleNfcOverlay(false);
                                 showDataModal(formattedData);
@@ -456,15 +461,23 @@
                     } catch (err) {
                         console.error("Error al procesar JSON:", err);
                         alert("La etiqueta no tiene el formato correcto.");
+                        
+                        // Limpieza en caso de error
                         if (nfcAbortController) nfcAbortController.abort();
+                        nfcAbortController = null;
+                        nfcReader = null;
+                        
                         toggleNfcOverlay(false);
                     }
                 };
         
             } catch (err) {
+                // Si el error no es simplemente que nosotros cancelamos la lectura...
                 if (err.name !== 'AbortError') {
                     console.error("Error al iniciar NFC:", err);
                     alert("No se pudo activar el lector.");
+                    nfcReader = null;
+                    nfcAbortController = null;
                     toggleNfcOverlay(false);
                 }
             }
