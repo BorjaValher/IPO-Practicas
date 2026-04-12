@@ -402,100 +402,90 @@
 
         
         // 7. LECTURA NFC
-        Ese error de "corrupta" (o el catch que acabamos de poner) ocurre porque al leer por segunda vez, el evento onreading se dispara pero el mensaje llega vacío o con caracteres de control que el navegador no puede procesar como texto plano.
-
-El problema real suele ser que onreading se acumula. Si no limpias el manejador de eventos, la segunda vez que pulsas el botón tienes dos funciones intentando leer la misma etiqueta.
-
-Vamos a aplicar la "solución nuclear": limpiar el evento manualmente y usar un pequeño delay para dar tiempo al hardware a resetearse.
-
-Sustituye estas funciones en tu script:
-
-JavaScript
-// 7. LECTURA NFC - VERSIÓN ULTRA-LIMPIA
-async function readNFC() {
-    if (!('NDEFReader' in window)) {
-        alert("Tu dispositivo no soporta NFC.");
-        return;
-    }
-
-    // 1. Limpieza total de cualquier rastro previo
-    if (nfcAbortController) {
-        nfcAbortController.abort();
-        nfcAbortController = null;
-    }
-    
-    // Pequeña pausa para que el sistema operativo libere el chip NFC
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    nfcAbortController = new AbortController();
-
-    try {
-        nfcReader = new NDEFReader();
-        await nfcReader.scan({ signal: nfcAbortController.signal });
-
-        document.getElementById('nfc-title').innerText = "Esperando Etiqueta...";
-        document.getElementById('nfc-overlay').classList.remove('hidden');
-
-        // Limpiamos cualquier manejador previo por si acaso
-        nfcReader.onreading = null;
-
-        nfcReader.onreading = (event) => {
-            // Importante: extraemos el mensaje del evento inmediatamente
-            const message = event.message;
-            
-            try {
-                const record = message.records.find(r => r.recordType === "text");
-                
-                if (record) {
-                    const decoder = new TextDecoder();
-                    const text = decoder.decode(record.data);
-                    
-                    // Limpieza agresiva del string (quitar caracteres invisibles)
-                    const jsonMatch = text.match(/\{.*\}/);
-                    
-                    if (jsonMatch) {
-                        const rawData = JSON.parse(jsonMatch[0]);
-                        
-                        const formattedData = {
-                            perfil: { 
-                                nombre: rawData.nombre || "Sin nombre", 
-                                sangre: rawData.tipo_sangre || "--" 
-                            },
-                            telefono_emergencia: rawData.telefono_emergencia || "",
-                            alergias: rawData.alergias || []
-                        };
-
-                        // CERRAR ANTES DE MOSTRAR
-                        stopNFC(); 
-                        document.getElementById('nfc-overlay').classList.add('hidden');
-                        showDataModal(formattedData);
-                    } else {
-                        throw new Error("No JSON found");
-                    }
-                }
-            } catch (err) {
-                console.error("Fallo al parsear:", err);
-                // Si falla, no alertamos inmediatamente, dejamos que el usuario reintente
-                // o cerramos si es un error crítico
-                stopNFC();
-                document.getElementById('nfc-overlay').classList.add('hidden');
-                alert("La etiqueta no tiene el formato correcto o está vacía.");
+        async function readNFC() {
+            if (!('NDEFReader' in window)) {
+                alert("Tu dispositivo no soporta NFC.");
+                return;
             }
-        };
-
-        // Capturar error de lectura de hardware (si se retira la etiqueta pronto)
-        nfcReader.onreadingerror = () => {
-            console.warn("Error de lectura de hardware. Reintentando...");
-        };
-
-    } catch (err) {
-        if (err.name !== 'AbortError') {
-            console.error("Error NFC:", err);
-            stopNFC();
-            document.getElementById('nfc-overlay').classList.add('hidden');
+        
+            // 1. Limpieza total de cualquier rastro previo
+            if (nfcAbortController) {
+                nfcAbortController.abort();
+                nfcAbortController = null;
+            }
+            
+            // Pequeña pausa para que el sistema operativo libere el chip NFC
+            await new Promise(resolve => setTimeout(resolve, 200));
+        
+            nfcAbortController = new AbortController();
+        
+            try {
+                nfcReader = new NDEFReader();
+                await nfcReader.scan({ signal: nfcAbortController.signal });
+        
+                document.getElementById('nfc-title').innerText = "Esperando Etiqueta...";
+                document.getElementById('nfc-overlay').classList.remove('hidden');
+        
+                // Limpiamos cualquier manejador previo por si acaso
+                nfcReader.onreading = null;
+        
+                nfcReader.onreading = (event) => {
+                    // Importante: extraemos el mensaje del evento inmediatamente
+                    const message = event.message;
+                    
+                    try {
+                        const record = message.records.find(r => r.recordType === "text");
+                        
+                        if (record) {
+                            const decoder = new TextDecoder();
+                            const text = decoder.decode(record.data);
+                            
+                            // Limpieza agresiva del string (quitar caracteres invisibles)
+                            const jsonMatch = text.match(/\{.*\}/);
+                            
+                            if (jsonMatch) {
+                                const rawData = JSON.parse(jsonMatch[0]);
+                                
+                                const formattedData = {
+                                    perfil: { 
+                                        nombre: rawData.nombre || "Sin nombre", 
+                                        sangre: rawData.tipo_sangre || "--" 
+                                    },
+                                    telefono_emergencia: rawData.telefono_emergencia || "",
+                                    alergias: rawData.alergias || []
+                                };
+        
+                                // CERRAR ANTES DE MOSTRAR
+                                stopNFC(); 
+                                document.getElementById('nfc-overlay').classList.add('hidden');
+                                showDataModal(formattedData);
+                            } else {
+                                throw new Error("No JSON found");
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Fallo al parsear:", err);
+                        // Si falla, no alertamos inmediatamente, dejamos que el usuario reintente
+                        // o cerramos si es un error crítico
+                        stopNFC();
+                        document.getElementById('nfc-overlay').classList.add('hidden');
+                        alert("La etiqueta no tiene el formato correcto o está vacía.");
+                    }
+                };
+        
+                // Capturar error de lectura de hardware (si se retira la etiqueta pronto)
+                nfcReader.onreadingerror = () => {
+                    console.warn("Error de lectura de hardware. Reintentando...");
+                };
+        
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Error NFC:", err);
+                    stopNFC();
+                    document.getElementById('nfc-overlay').classList.add('hidden');
+                }
+            }
         }
-    }
-}
 
         // 8. MANEJO DEL MODAL (VENTANA FLOTANTE)
         function showDataModal(data) {
@@ -598,7 +588,6 @@ async function readNFC() {
         function closeDataModal() {
             document.getElementById('data-modal').classList.add('hidden');
             stopNFC();
-            document.getElementById('nfc-title').innerText = "Acerca VitalTip";
         }
 
         function toggleNfcOverlay(show) {
