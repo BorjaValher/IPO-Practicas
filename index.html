@@ -402,63 +402,48 @@
         // 7. LECTURA NFC
         async function readNFC() {
             if (!('NDEFReader' in window)) {
-                alert("Tu dispositivo o navegador no soporta la lectura NFC.");
+                alert("NFC no soportado.");
                 return;
             }
         
             try {
                 const reader = new NDEFReader();
                 await reader.scan();
-        
-                // Feedback visual (opcional, para que el usuario sepa que está leyendo)
-                const titleEl = document.getElementById('nfc-title');
-                const descEl = document.getElementById('nfc-desc');
-                if (titleEl) titleEl.innerText = "Leyendo Datos...";
-                if (descEl) descEl.innerText = "Mantén la etiqueta cerca para recuperar la información médica.";
-                
                 toggleNfcOverlay(true);
         
                 reader.onreading = ({ message }) => {
                     try {
-                        // Buscamos el registro tipo "text" donde grabamos el JSON
                         const record = message.records.find(r => r.recordType === "text");
                         
                         if (record) {
-                            // DECODIFICACIÓN: Pasamos de binario a string
-                            const textDecoder = new TextDecoder();
-                            const jsonString = textDecoder.decode(record.data);
-                            
-                            // PARSEO: Convertimos el string de nuevo a un objeto JS
-                            const data = JSON.parse(jsonString);
+                            const decoder = new TextDecoder(record.encoding);
+                            let rawData = decoder.decode(record.data);
         
-                            // Aquí ya tienes 'data' con el mismo formato que 'emergencyData' de writeNFC:
-                            // data.nombre, data.tipo_sangre, data.telefono_emergencia, data.alergias
+                            // --- SOLUCIÓN AL ERROR DE FORMATO ---
+                            // Los registros de texto NDEF tienen un prefijo de idioma (ej: "en") 
+                            // que rompe el JSON.parse. Tenemos que quitarlo:
+                            const langCodeLength = record.data ? new DataView(record.data).getUint8(0) & 0x3F : 0;
+                            const cleanJson = rawData.substring(langCodeLength + 1);
+                            
+                            // Ahora sí, parseamos el JSON limpio
+                            const data = JSON.parse(cleanJson);
         
                             toggleNfcOverlay(false);
-                            
-                            // Enviamos los datos al modal para mostrarlos
                             showDataModal(data);
-        
                         } else {
-                            alert("No se encontraron datos médicos en esta etiqueta.");
+                            alert("No se encontró el registro de texto.");
                             toggleNfcOverlay(false);
                         }
                     } catch (err) {
-                        console.error("Error al procesar el contenido del NFC:", err);
-                        alert("La etiqueta no contiene un formato de datos válido.");
+                        console.error("Error detallado:", err);
+                        alert("Error al procesar los datos: " + err.message);
                         toggleNfcOverlay(false);
                     }
                 };
         
-                reader.onreadingerror = () => {
-                    alert("Error de lectura. Asegúrate de no mover la etiqueta demasiado rápido.");
-                    toggleNfcOverlay(false);
-                };
-        
-            } catch (error) {
-                console.error("Error al iniciar NFC:", error);
+            } catch (err) {
+                console.error("Error de escaneo:", err);
                 toggleNfcOverlay(false);
-                alert("No se pudo activar el lector NFC.");
             }
         }
 
