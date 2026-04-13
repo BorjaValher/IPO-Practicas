@@ -194,8 +194,12 @@
             <input id="edit-nombre" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
         </div>
         <div>
-            <label for="edit-id" class="text-xs font-bold text-slate-500 uppercase">ID</label>
-            <input id="edit-id" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+            <label for="edit-altura" class="text-xs font-bold text-slate-500 uppercase">Altura (cm)</label>
+            <input id="edit-altura" type="number" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+        </div>
+        <div>
+            <label for="edit-peso" class="text-xs font-bold text-slate-500 uppercase">Peso (kg)</label>
+            <input id="edit-peso" type="number" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
         </div>
         <div>
             <label for="edit-direccion" class="text-xs font-bold text-slate-500 uppercase">Dirección</label>
@@ -673,7 +677,8 @@ function toggleEditProfile(show) {
     if (show) {
         // Rellenar el formulario con los datos actuales
         document.getElementById('edit-nombre').value = patientData.perfil.nombre;
-        document.getElementById('edit-id').value = patientData.perfil.id;
+        document.getElementById('edit-altura').value = patientData.perfil.altura || '';
+        document.getElementById('edit-peso').value = patientData.perfil.peso || '';
         document.getElementById('edit-direccion').value = patientData.perfil.direccion;
         document.getElementById('edit-sangre').value = patientData.perfil.sangre;
 
@@ -695,13 +700,15 @@ function saveProfile(event) {
 
     // Obtener los valores del formulario
     const nombre = document.getElementById('edit-nombre').value;
-    const id = document.getElementById('edit-id').value;
+    const altura = document.getElementById('edit-altura').value;
+    const peso = document.getElementById('edit-peso').value;
     const direccion = document.getElementById('edit-direccion').value;
     const sangre = document.getElementById('edit-sangre').value;
 
     // Actualizar los datos en la variable patientData
     patientData.perfil.nombre = nombre;
-    patientData.perfil.id = id;
+    patientData.perfil.altura = altura;
+    patientData.perfil.peso = peso;
     patientData.perfil.direccion = direccion;
     patientData.perfil.sangre = sangre;
 
