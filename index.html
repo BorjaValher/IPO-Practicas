@@ -744,7 +744,8 @@ function saveProfile(event) {
 
     // Actualizar la vista del perfil
     renderData();
-
+    // Regenerar los iconos de Lucide
+    lucide.createIcons();
     // Ocultar el formulario y mostrar la información del perfil
     toggleEditProfile(false);
 
