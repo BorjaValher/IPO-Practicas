@@ -179,31 +179,44 @@
             Editar Perfil
         </button>
 
-        <!-- Formulario de edición (oculto por defecto) -->
-        <div id="edit-profile-form" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Perfil</h3>
-            <form onsubmit="saveProfile(event)" class="space-y-4">
-                <div>
-                    <label for="edit-nombre" class="text-xs font-bold text-slate-500 uppercase">Nombre</label>
-                    <input id="edit-nombre" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-                </div>
-                <div>
-                    <label for="edit-id" class="text-xs font-bold text-slate-500 uppercase">ID</label>
-                    <input id="edit-id" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-                </div>
-                <div>
-                    <label for="edit-direccion" class="text-xs font-bold text-slate-500 uppercase">Dirección</label>
-                    <input id="edit-direccion" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-green-500 active:scale-95 transition-all">
-                    Guardar Cambios
-                </button>
-                <button type="button" onclick="toggleEditProfile(false)" class="w-full mt-2 bg-red-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-red-500 active:scale-95 transition-all">
-                    Cancelar
-                </button>
-            </form>
+<!-- Formulario de edición (actualizado) -->
+<div id="edit-profile-form" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+    <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Perfil</h3>
+    <form onsubmit="saveProfile(event)" class="space-y-4">
+        <div>
+            <label for="edit-nombre" class="text-xs font-bold text-slate-500 uppercase">Nombre</label>
+            <input id="edit-nombre" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
         </div>
-    </section>
+        <div>
+            <label for="edit-id" class="text-xs font-bold text-slate-500 uppercase">ID</label>
+            <input id="edit-id" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+        </div>
+        <div>
+            <label for="edit-direccion" class="text-xs font-bold text-slate-500 uppercase">Dirección</label>
+            <input id="edit-direccion" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+        </div>
+        <div>
+            <label for="edit-sangre" class="text-xs font-bold text-slate-500 uppercase">Tipo de Sangre</label>
+            <select id="edit-sangre" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm">
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+            </select>
+        </div>
+        <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-green-500 active:scale-95 transition-all">
+            Guardar Cambios
+        </button>
+        <button type="button" onclick="toggleEditProfile(false)" class="w-full mt-2 bg-red-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-red-500 active:scale-95 transition-all">
+            Cancelar
+        </button>
+    </form>
+</div>
+</section>
 </main>
 
 <!-- Botón para guardar en NFC -->
@@ -653,7 +666,7 @@
             }
         }
 
- // Mostrar/Ocultar el formulario de edición y la información del perfil
+// Mostrar/Ocultar el formulario de edición y la información del perfil
 function toggleEditProfile(show) {
     const profileInfo = document.getElementById('profile-info');
     const form = document.getElementById('edit-profile-form');
@@ -664,6 +677,7 @@ function toggleEditProfile(show) {
         document.getElementById('edit-nombre').value = patientData.perfil.nombre;
         document.getElementById('edit-id').value = patientData.perfil.id;
         document.getElementById('edit-direccion').value = patientData.perfil.direccion;
+        document.getElementById('edit-sangre').value = patientData.perfil.sangre;
 
         // Ocultar la información del perfil y mostrar el formulario
         profileInfo.classList.add('hidden');
@@ -685,11 +699,13 @@ function saveProfile(event) {
     const nombre = document.getElementById('edit-nombre').value;
     const id = document.getElementById('edit-id').value;
     const direccion = document.getElementById('edit-direccion').value;
+    const sangre = document.getElementById('edit-sangre').value;
 
     // Actualizar los datos en la variable patientData
     patientData.perfil.nombre = nombre;
     patientData.perfil.id = id;
     patientData.perfil.direccion = direccion;
+    patientData.perfil.sangre = sangre;
 
     // Actualizar la vista del perfil
     renderData();
