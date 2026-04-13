@@ -427,18 +427,22 @@
         function switchTab(tabId, btnElement) {
             // Ocultar todas las pestañas
             document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
                 tab.classList.add('hidden');
             });
         
             // Mostrar la pestaña seleccionada
             const selectedTab = document.getElementById(tabId);
+            selectedTab.classList.add('active');
             selectedTab.classList.remove('hidden');
         
             // Actualizar el estado de los botones de navegación
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active');
+                btn.classList.replace('text-[#00529b]', 'text-slate-300');
             });
             btnElement.classList.add('active');
+            btnElement.classList.replace('text-slate-300', 'text-[#00529b]');
         
             // Mostrar u ocultar el HEADER (NFC)
             const nfcHeader = document.getElementById('nfc-header');
