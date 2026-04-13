@@ -45,37 +45,37 @@
 <body class="min-h-screen max-w-md mx-auto bg-slate-50 relative overflow-x-hidden">
 
     <!-- HEADER -->
-    <header class="bg-[#00529b] text-white p-5 pt-8 rounded-b-[2.5rem] shadow-xl sticky top-0 z-50">
-        <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-white p-2 rounded-xl shadow-lg">
-                    <i data-lucide="heart-pulse" class="text-[#d32f2f] w-7 h-7"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-black tracking-tight leading-none">VitalTip</h1>
-                    <span class="text-[10px] uppercase tracking-widest opacity-80 font-bold text-blue-200" id="header-status">Digital Health ID</span>
-                </div>
+<header id="nfc-header" class="bg-[#00529b] text-white p-5 pt-8 rounded-b-[2.5rem] shadow-xl sticky top-0 z-50">
+    <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-white p-2 rounded-xl shadow-lg">
+                <i data-lucide="heart-pulse" class="text-[#d32f2f] w-7 h-7"></i>
             </div>
-            <button onclick="readNFC()" class="bg-blue-600 border border-blue-400 p-4 rounded-2xl shadow-lg transition-all active:scale-90">
-                <i data-lucide="nfc" class="w-6 h-6 text-white"></i>
-            </button>
+            <div>
+                <h1 class="text-2xl font-black tracking-tight leading-none">VitalTip</h1>
+                <span class="text-[10px] uppercase tracking-widest opacity-80 font-bold text-blue-200" id="header-status">Digital Health ID</span>
+            </div>
         </div>
-    </header>
+        <button onclick="readNFC()" class="bg-blue-600 border border-blue-400 p-4 rounded-2xl shadow-lg transition-all active:scale-90">
+            <i data-lucide="nfc" class="w-6 h-6 text-white"></i>
+        </button>
+    </div>
+</header>
 
     <!-- MAIN CONTENT: INICIO -->
     <main id="home" class="tab-content active p-4 pt-6 pb-28 space-y-6">
         
         <!-- BOTONES RÁPIDOS -->
-        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            <button onclick="triggerSOS()" class="flex-shrink-0 bg-[#d32f2f] text-white px-6 py-4 rounded-2xl shadow-lg flex items-center gap-3 pulse-red active:scale-95 transition-all">
-                <i data-lucide="phone-call" class="w-5 h-5"></i>
-                <span class="font-bold whitespace-nowrap uppercase text-sm">Llamada SOS</span>
-            </button>
-            <button onclick="shareLocation()" class="flex-shrink-0 bg-white border-2 border-[#00529b] text-[#00529b] px-6 py-4 rounded-2xl shadow-md flex items-center gap-3 active:scale-95 transition-all">
-                <i data-lucide="map-pin" class="w-5 h-5"></i>
-                <span class="font-bold whitespace-nowrap uppercase text-sm" id="loc-btn-text">Mi Ubicación</span>
-            </button>
-        </div>
+<div class="flex justify-center gap-3 pb-2">
+    <button onclick="triggerSOS()" class="bg-[#d32f2f] text-white px-6 py-4 rounded-2xl shadow-lg flex items-center gap-3 pulse-red active:scale-95 transition-all">
+        <i data-lucide="phone-call" class="w-5 h-5"></i>
+        <span class="font-bold whitespace-nowrap uppercase text-sm">Llamada SOS</span>
+    </button>
+    <button onclick="shareLocation()" class="bg-white border-2 border-[#00529b] text-[#00529b] px-6 py-4 rounded-2xl shadow-md flex items-center gap-3 active:scale-95 transition-all">
+        <i data-lucide="map-pin" class="w-5 h-5"></i>
+        <span class="font-bold whitespace-nowrap uppercase text-sm" id="loc-btn-text">Mi Ubicación</span>
+    </button>
+</div>
 
         <!-- SECCIÓN CRÍTICA -->
         <section class="grid grid-cols-1 gap-4">
@@ -427,23 +427,26 @@
         function switchTab(tabId, btnElement) {
             // Ocultar todas las pestañas
             document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
                 tab.classList.add('hidden');
             });
         
             // Mostrar la pestaña seleccionada
             const selectedTab = document.getElementById(tabId);
-            selectedTab.classList.add('active');
             selectedTab.classList.remove('hidden');
         
             // Actualizar el estado de los botones de navegación
             document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.replace('text-[#00529b]', 'text-slate-300');
+                btn.classList.remove('active');
             });
-            btnElement.classList.replace('text-slate-300', 'text-[#00529b]');
+            btnElement.classList.add('active');
         
-            // Actualizar los iconos (si es necesario)
-            lucide.createIcons();
+            // Mostrar u ocultar el HEADER (NFC)
+            const nfcHeader = document.getElementById('nfc-header');
+            if (tabId === 'home') {
+                nfcHeader.classList.remove('hidden');
+            } else {
+                nfcHeader.classList.add('hidden');
+            }
         }
 
         // 5. LLAMADA SOS
