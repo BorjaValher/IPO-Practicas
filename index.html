@@ -191,11 +191,7 @@
             Editar Perfil
         </button>
 
-        <!-- Botón para escribir en el NFC -->
-        <button onclick="writeNFC()" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-            <i data-lucide="radio" class="w-5 h-5"></i>
-            Guardar en NFC
-        </button>
+        
 
 <!-- Formulario de edición (actualizado) -->
 <div id="edit-profile-form" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
@@ -239,6 +235,11 @@
     </form>
 </div>
 </section>
+<!-- Botón para escribir en el NFC -->
+<button onclick="writeNFC()" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+    <i data-lucide="radio" class="w-5 h-5"></i>
+    Guardar en NFC
+</button>
 </main>
 
 
@@ -692,6 +693,7 @@ function toggleEditProfile(show) {
     const profileInfo = document.getElementById('profile-info');
     const form = document.getElementById('edit-profile-form');
     const editBtn = document.getElementById('edit-profile-btn');
+    const nfcBtn = document.getElementById('write-nfc-btn');
 
     if (show) {
         // Rellenar el formulario con los datos actuales
@@ -705,11 +707,17 @@ function toggleEditProfile(show) {
         profileInfo.classList.add('hidden');
         form.classList.remove('hidden');
         editBtn.classList.add('hidden');
+
+        // Ocultar el botón de escribir en el NFC
+        nfcBtn.classList.add('hidden');
     } else {
         // Mostrar la información del perfil y ocultar el formulario
         profileInfo.classList.remove('hidden');
         form.classList.add('hidden');
         editBtn.classList.remove('hidden');
+
+        // Mostrar el botón de escribir en el NFC
+        nfcBtn.classList.remove('hidden');
     }
 }
 
