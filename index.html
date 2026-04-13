@@ -136,14 +136,26 @@
     </main>
 
     <!-- MAIN CONTENT: HISTORIAL -->
-    <main id="history" class="tab-content p-4 pt-6 pb-28">
-        <h2 class="text-xl font-black text-[#00529b] mb-6 flex items-center gap-2">
+<main id="history" class="tab-content p-4 pt-6 pb-28">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-black text-[#00529b] flex items-center gap-2">
             <i data-lucide="clipboard-list"></i> Historial Médico
         </h2>
-        <div class="relative border-l-2 border-slate-200 ml-3 space-y-8" id="historial-container">
-            <!-- El historial se cargará por JS -->
+        <div class="flex gap-3">
+            <button onclick="addHistorial()" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-2 active:scale-95 transition-all">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span class="text-sm font-bold">Añadir</span>
+            </button>
+            <button onclick="deleteHistorial()" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-2 active:scale-95 transition-all">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                <span class="text-sm font-bold">Eliminar</span>
+            </button>
         </div>
-    </main>
+    </div>
+    <div class="relative border-l-2 border-slate-200 ml-3 space-y-8" id="historial-container">
+        <!-- El historial se cargará por JS -->
+    </div>
+</main>
 
 
 <!-- Pestaña de Perfil -->
@@ -728,7 +740,46 @@ function saveProfile(event) {
     alert('Perfil actualizado correctamente.');
 }
 
+// Función para añadir un nuevo evento al historial médico
+function addHistorial() {
+    const fecha = prompt("Introduce la fecha del evento (por ejemplo, Marzo 2023):");
+    const evento = prompt("Introduce el nombre del evento (por ejemplo, Consulta médica):");
+    const lugar = prompt("Introduce el lugar del evento (por ejemplo, Hospital General):");
+    const desc = prompt("Introduce una descripción breve del evento:");
 
+    if (fecha && evento && lugar && desc) {
+        // Añadir el nuevo evento al historial
+        patientData.historial.push({
+            fecha,
+            evento,
+            lugar,
+            desc
+        });
+
+        // Actualizar la vista del historial
+        renderData();
+        alert("Evento añadido correctamente.");
+    } else {
+        alert("Todos los campos son obligatorios.");
+    }
+}
+
+// Función para eliminar el último evento del historial médico
+function deleteHistorial() {
+    if (patientData.historial.length > 0) {
+        const confirmDelete = confirm("¿Estás seguro de que deseas eliminar el último evento del historial?");
+        if (confirmDelete) {
+            // Eliminar el último evento del historial
+            patientData.historial.pop();
+
+            // Actualizar la vista del historial
+            renderData();
+            alert("Último evento eliminado correctamente.");
+        }
+    } else {
+        alert("No hay eventos en el historial para eliminar.");
+    }
+}
 
 
 
