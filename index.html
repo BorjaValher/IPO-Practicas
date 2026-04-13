@@ -145,71 +145,72 @@
         </div>
     </main>
 
-<main>
-<!-- Contenedor principal del perfil -->
-<section id="profile-section" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-    <!-- Información del perfil -->
-    <div id="profile-info">
-        <div class="text-center mb-6">
-            <div class="w-24 h-24 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-400 border-4 border-white shadow-lg">
-                <i data-lucide="user" class="w-12 h-12"></i>
+<!-- Pestaña de Perfil -->
+<main id="profile-tab" class="tab-content hidden">
+    <!-- SECCIÓN DEL PERFIL -->
+    <section id="profile-section" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+        <!-- Información del perfil -->
+        <div id="profile-info">
+            <div class="text-center mb-6">
+                <div class="w-24 h-24 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-400 border-4 border-white shadow-lg">
+                    <i data-lucide="user" class="w-12 h-12"></i>
+                </div>
+                <h2 id="perfil-nombre" class="text-xl font-black text-slate-800">--</h2>
+                <p id="perfil-id" class="text-sm text-slate-500 font-mono mt-1">--</p>
             </div>
-            <h2 id="perfil-nombre" class="text-xl font-black text-slate-800">--</h2>
-            <p id="perfil-id" class="text-sm text-slate-500 font-mono mt-1">--</p>
+
+            <div class="grid grid-cols-2 gap-4 mb-6" id="perfil-stats-container">
+                <!-- Estadísticas vitales por JS -->
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Dirección habitual</p>
+                <p id="perfil-direccion" class="text-sm text-slate-700 flex items-start gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-[#00529b] mt-0.5 shrink-0"></i>
+                    <span>--</span>
+                </p>
+            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-6" id="perfil-stats-container">
-            <!-- Estadísticas vitales por JS -->
+        <!-- Botón de edición -->
+        <button id="edit-profile-btn" onclick="toggleEditProfile(true)" class="w-full mt-4 bg-blue-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+            <i data-lucide="edit" class="w-5 h-5"></i>
+            Editar Perfil
+        </button>
+
+        <!-- Formulario de edición (oculto por defecto) -->
+        <div id="edit-profile-form" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Perfil</h3>
+            <form onsubmit="saveProfile(event)" class="space-y-4">
+                <div>
+                    <label for="edit-nombre" class="text-xs font-bold text-slate-500 uppercase">Nombre</label>
+                    <input id="edit-nombre" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+                </div>
+                <div>
+                    <label for="edit-id" class="text-xs font-bold text-slate-500 uppercase">ID</label>
+                    <input id="edit-id" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+                </div>
+                <div>
+                    <label for="edit-direccion" class="text-xs font-bold text-slate-500 uppercase">Dirección</label>
+                    <input id="edit-direccion" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-green-500 active:scale-95 transition-all">
+                    Guardar Cambios
+                </button>
+                <button type="button" onclick="toggleEditProfile(false)" class="w-full mt-2 bg-red-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-red-500 active:scale-95 transition-all">
+                    Cancelar
+                </button>
+            </form>
         </div>
-
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-            <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Dirección habitual</p>
-            <p id="perfil-direccion" class="text-sm text-slate-700 flex items-start gap-2">
-                <i data-lucide="map-pin" class="w-4 h-4 text-[#00529b] mt-0.5 shrink-0"></i>
-                <span>--</span>
-            </p>
-        </div>
-    </div>
-
-    <!-- Botón de edición -->
-    <button id="edit-profile-btn" onclick="toggleEditProfile(true)" class="w-full mt-4 bg-blue-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-        <i data-lucide="edit" class="w-5 h-5"></i>
-        Editar Perfil
-    </button>
-
-    <!-- Formulario de edición (oculto por defecto) -->
-    <div id="edit-profile-form" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Perfil</h3>
-        <form onsubmit="saveProfile(event)" class="space-y-4">
-            <div>
-                <label for="edit-nombre" class="text-xs font-bold text-slate-500 uppercase">Nombre</label>
-                <input id="edit-nombre" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-            </div>
-            <div>
-                <label for="edit-id" class="text-xs font-bold text-slate-500 uppercase">ID</label>
-                <input id="edit-id" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-            </div>
-            <div>
-                <label for="edit-direccion" class="text-xs font-bold text-slate-500 uppercase">Dirección</label>
-                <input id="edit-direccion" type="text" class="w-full border border-slate-300 rounded-lg p-2 mt-1 text-sm" value="">
-            </div>
-            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-green-500 active:scale-95 transition-all">
-                Guardar Cambios
-            </button>
-            <button type="button" onclick="toggleEditProfile(false)" class="w-full mt-2 bg-red-600 text-white py-3 rounded-2xl font-bold uppercase text-sm tracking-widest hover:bg-red-500 active:scale-95 transition-all">
-                Cancelar
-            </button>
-        </form>
-    </div>
-</div>
+    </section>
+</main>
 
 <!-- Botón para guardar en NFC -->
-<button onclick="writeNFC()" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-    <i data-lucide="radio" class="w-5 h-5"></i>
-    Guardar en NFC
-</button>
-
-</section>
+<main id="nfc-tab" class="tab-content hidden">
+    <button onclick="writeNFC()" class="w-full mt-6 bg-slate-800 text-white py-4 rounded-2xl font-bold uppercase text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+        <i data-lucide="radio" class="w-5 h-5"></i>
+        Guardar en NFC
+    </button>
 </main>
 
 
