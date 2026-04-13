@@ -758,6 +758,10 @@ function addHistorial() {
 
         // Actualizar la vista del historial
         renderData();
+
+        // Regenerar los iconos de Lucide
+        lucide.createIcons();
+
         alert("Evento añadido correctamente.");
     } else {
         alert("Todos los campos son obligatorios.");
