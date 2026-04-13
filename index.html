@@ -778,11 +778,13 @@ function deleteHistorial() {
 
             // Actualizar la vista del historial
             renderData();
+            // Regenerar los iconos de Lucide
             alert("Último evento eliminado correctamente.");
         }
     } else {
         alert("No hay eventos en el historial para eliminar.");
     }
+    lucide.createIcons();
 }
 
 
